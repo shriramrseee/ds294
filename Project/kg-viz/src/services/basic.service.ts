@@ -16,7 +16,7 @@ export class BasicService {
   }
 
   getVertex(name: string) {
-    return this.http.get(this.url + "?subject=like."+name+"")
+    return this.http.get(this.url + "?subject=like."+name)
   }
 
 }
