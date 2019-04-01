@@ -1,0 +1,25 @@
+<div style="text-align:center">
+  <h1>
+    Welcome to {{ title }}!
+  </h1>
+</div>
+<br>
+<br>
+<div class="col-lg-3">
+  <div class="row">
+    <label>Search Vertex:</label>
+    <input type="text" class="form-control" ngControl="vertex" [(ngModel)]="vertex">
+    <button (click)="searchVertex()">Search</button>
+  </div>
+  <br>
+  <div class="row">
+    Zoom:&nbsp; &nbsp; <input type="range" min="1" max="1000" value="50" class="slider" [(ngModel)]="zoom"
+                              (change)="changeZoom($event.value)"> &nbsp;
+    <span>{{zoom}}</span>
+  </div>
+</div>
+<br>
+<br>
+<svg width="2000" height="1000"></svg>
+<br>
+<br>
