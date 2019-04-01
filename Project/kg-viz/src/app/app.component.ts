@@ -13,9 +13,11 @@ export class AppComponent implements AfterContentInit, OnInit {
   title = 'kg-viz';
   data = [];
   k = 10;
-  width = 1920;
-  height = 1500;
+  width = 1400;
+  height = 1400;
   vertex = '';
+  propVertex = '';
+  prop = [];
   zoom = 400;
   simulation = null;
   links = null;
@@ -24,13 +26,13 @@ export class AppComponent implements AfterContentInit, OnInit {
   linktext = null;
   node = null;
   svg = null;
+  isLoading = false;
 
   constructor(public basicService: BasicService) {
   }
 
   ngAfterContentInit() {
     d3.select("p").style("color", "red");
-    this.svg = d3.select("svg");
   }
 
   ngOnInit() {
@@ -43,6 +45,7 @@ export class AppComponent implements AfterContentInit, OnInit {
   }
 
   searchVertex() {
+    this.isLoading = true;
     this.basicService.getVertex((this.vertex)).subscribe(res => {
       this.data = [];
       this.nodes = [];
@@ -61,24 +64,42 @@ export class AppComponent implements AfterContentInit, OnInit {
       for (let i in temp) {
         this.nodes.push(Object.create({"id": i}));
       }
+      if(this.nodes.length > 0 && this.links.length > 0)
+        this.drawGraph();
+      else
+        d3.select("svg").selectAll("*").remove();
+      this.isLoading = false;
       console.log(this.data);
       console.log(this.nodes);
       console.log(this.links);
-      this.drawGraph();
     })
+  }
+
+  getProp()
+  {
+    this.isLoading = true;
+    this.prop = [];
+    this.basicService.getProp((this.propVertex)).subscribe(res => {
+      for (let i of <Array<any>> res) {
+        this.prop.push(new yago(i));
+      }
+      this.isLoading = false;
+    });
   }
 
   changeZoom(newVal) {
     console.log(newVal);
+    this.width = this.zoom * 3.5;
+    this.height = this.zoom * 3.5;
     this.drawGraph();
   }
 
   drawGraph() {
+    this.svg = d3.select("svg");
     this.svg.selectAll("*").remove();
-
     let force = this.simulation = d3.forceSimulation(this.nodes)
       .force("link", d3.forceLink(this.links).id(d => d.id).distance(this.zoom).strength(1))
-      .force("charge", d3.forceManyBody())
+      .force("charge", d3.forceManyBody().strength(-1000))
       .force("center", d3.forceCenter(this.width / 2, this.height / 2));
 
     let link = this.svg.selectAll("line")
@@ -154,8 +175,8 @@ export class AppComponent implements AfterContentInit, OnInit {
         return d.id;
       });
     node.on("click", (d) => {
-      this.vertex = d.id;
-      this.searchVertex();
+      this.propVertex = d.id;
+      this.getProp();
     });
 
 

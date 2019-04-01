@@ -5,21 +5,41 @@
 </div>
 <br>
 <br>
-<div class="col-lg-3">
-  <div class="row">
-    <label>Vertex: &nbsp; &nbsp;</label>
-    <input type="text"  ngControl="vertex" [(ngModel)]="vertex"> &nbsp; &nbsp;
-    <button (click)="searchVertex()">Search</button>
+<div class="col-lg-4">
+    <div class="row">
+      <label>Vertex: &nbsp; &nbsp;</label>
+      <input type="text"  ngControl="vertex" [(ngModel)]="vertex"> &nbsp; &nbsp;
+      <button (click)="searchVertex()">Search</button> &nbsp; &nbsp;
+      <span *ngIf="isLoading"> <i class="fa fa-spinner fa-2x" aria-hidden="true"></i></span>
+    </div>
+    <br>
+    <div class="row">
+      Zoom:&nbsp; &nbsp; <input type="range" min="1" max="1000" value="50" class="slider" [(ngModel)]="zoom"
+                                (change)="changeZoom($event.value)"> &nbsp;
+      <span>{{zoom}}</span>
+    </div>
   </div>
-  <br>
-  <div class="row">
-    Zoom:&nbsp; &nbsp; <input type="range" min="1" max="1000" value="50" class="slider" [(ngModel)]="zoom"
-                              (change)="changeZoom($event.value)"> &nbsp;
-    <span>{{zoom}}</span>
+<br>
+<br>
+<div class="row">
+  <div class="col-lg-8" style="background-color: #ffffff; height: 700px; overflow: scroll">
+    <svg [attr.width]="width" [attr.height]="height" ></svg>
+  </div>
+  <div class="col-lg-4">
+    <span><h4 style="text-align: center">{{propVertex}}</h4></span>
+    <table style="width:100%">
+      <tr>
+        <th>Property</th>
+        <th>Unit</th>
+        <th>Value</th>
+      </tr>
+      <tr *ngFor="let p of prop">
+        <td>{{p.predicate}}</td>
+        <td>{{p.object}}</td>
+        <td>{{p.value}}</td>
+      </tr>
+    </table>
   </div>
 </div>
-<br>
-<br>
-<svg width="1920" height="1500"></svg>
 <br>
 <br>
