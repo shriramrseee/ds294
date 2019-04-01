@@ -13,8 +13,8 @@ export class AppComponent implements AfterContentInit, OnInit {
   title = 'kg-viz';
   data = [];
   k = 10;
-  width = 2000;
-  height = 1000;
+  width = 1920;
+  height = 1500;
   vertex = '';
   zoom = 400;
   simulation = null;
@@ -55,11 +55,11 @@ export class AppComponent implements AfterContentInit, OnInit {
         if (isNullOrUndefined(i.value)) {
           temp[i.subject] = 1;
           temp[i.object] = 1;
-          this.links.push(Object.create({"source": i.subject, "target": i.object}));
+          this.links.push(Object.create({"source": i.subject, "target": i.object, "label": i.predicate}));
         }
       }
-      for(let i in temp) {
-        this.nodes.push(Object.create({"id":i}));
+      for (let i in temp) {
+        this.nodes.push(Object.create({"id": i}));
       }
       console.log(this.data);
       console.log(this.nodes);
@@ -75,69 +75,141 @@ export class AppComponent implements AfterContentInit, OnInit {
 
   drawGraph() {
     this.svg.selectAll("*").remove();
-    this.simulation = d3.forceSimulation(this.nodes)
+
+    let force = this.simulation = d3.forceSimulation(this.nodes)
       .force("link", d3.forceLink(this.links).id(d => d.id).distance(this.zoom).strength(1))
       .force("charge", d3.forceManyBody())
       .force("center", d3.forceCenter(this.width / 2, this.height / 2));
-    this.link = this.svg.append("g")
-      .attr("class", "links")
-      .selectAll("line")
+
+    let link = this.svg.selectAll("line")
       .data(this.links)
-      .enter().append("g")
+      .enter()
       .append("line")
+      .attr("id", function (d, i) {
+        return 'edge' + i
+      })
+      .attr('marker-end', 'url(#arrowhead)')
+      .style("stroke", "#ccc")
+      .style("pointer-events", "none");
+
+    let edgepaths = this.svg.selectAll(".edgepath")
+      .data(this.links)
+      .enter()
+      .append('path')
+      .attr('d', function (d) {
+        return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y
+      })
+      .attr('class', 'edgepath')
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", 2);
-    // this.link = this.svg.selectAll("path.link").data(this.links, function(d) {
-    //   return d.source.id + "-" + d.target.id; });
-    // this.link.enter().append("path").attr("class", "link");
-    this.linktext = this.svg.append("g").selectAll("g.linklabelholder").data(this.links);
-    this.linktext.enter().append("g").attr("class", "linklabelholder")
-      .append("text")
-      .attr("class", "linklabel")
-      .style("font-size", "13px")
-      .attr("x", "50")
-      .attr("y", "-20")
-      .attr("text-anchor", "start")
-      .style("fill","#000")
-      .append("textPath")
-      .attr("xlink:href",function(d,i) { return "#linkId_" + i;})
-      .text(function(d) {
-        return "my text"; //Can be dynamic via d object
+      .attr("stroke-width", 2)
+      .attr('fill-opacity', 0)
+      .attr('fill', 'blue')
+      .attr('id', function (d, i) {
+        return 'edgepath' + i
+      })
+      .style("pointer-events", "none");
+
+    let edgelabels = this.svg.selectAll(".edgelabel")
+      .data(this.links)
+      .enter()
+      .append('text')
+      .style("pointer-events", "none")
+      .attr('class', 'edgelabel')
+      .attr('id', function (d, i) {
+        return 'edgelabel' + i
+      })
+      .attr('dx', this.zoom/2)
+      .attr('dy', 0)
+      .attr('font-size', 10)
+      .attr('fill', '#d30e13');
+
+    edgelabels.append('textPath')
+      .attr('xlink:href', function (d, i) {
+        return '#edgepath' + i
+      })
+      .style("pointer-events", "none")
+      .text(function (d, i) {
+        return d.label
       });
-    this.node = this.svg.append("g")
+
+
+    let node = this.svg.append("g")
       .attr("class", "nodes")
       .selectAll("g")
       .data(this.nodes)
       .enter().append("g");
-    this.node.append("circle")
+    node.append("circle")
       .attr("r", 5)
       .attr("fill", "#000");
-    this.node.append("text")
-      .text(function(d) {
+    let nodelabel = node.append("text")
+      .text(function (d) {
         return d.id;
       })
+      .attr('font-size', 10)
       .attr('x', 6)
-      .attr('y', 3);
-    this.node.append("title")
-      .text(function(d) { return d.id; });
-    this.node.on("click", (d) => {
+      .attr('y', 10);
+    node.append("title")
+      .text(function (d) {
+        return d.id;
+      });
+    node.on("click", (d) => {
       this.vertex = d.id;
       this.searchVertex();
     });
-    this.simulation.on("tick", () => {
-      this.link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
-      this.linktext.attr("transform", function(d) {
-        return "translate(" + (d.source.x + d.target.x) / 2 + ","
-          + (d.source.y + d.target.y) / 2 + ")"; });
-      this.node
-        .attr("transform", function(d) {
-          return "translate(" + d.x + "," + d.y + ")";
-        })
+
+
+    this.svg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '-0 -5 10 10')
+      .attr('refX', 25)
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 10)
+      .attr('markerHeight', 10)
+      .attr('xoverflow', 'visible')
+      .append('svg:path')
+      .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+      .attr('fill', '#0f0f0f')
+      .attr('stroke', '#090909');
+
+
+    force.on("tick", function () {
+
+      link.attr({
+        "x1": function (d) {
+          return d.source.x;
+        },
+        "y1": function (d) {
+          return d.source.y;
+        },
+        "x2": function (d) {
+          return d.target.x;
+        },
+        "y2": function (d) {
+          return d.target.y;
+        }
+      });
+
+      node.attr("transform", function (d) {
+        return "translate(" + d.x + "," + d.y + ")";
+      });
+
+      edgepaths.attr('d', function (d) {
+        return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y;
+      });
+
+      edgelabels.attr('transform', function (d, i) {
+        if (d.target.x < d.source.x) {
+          let bbox = this.getBBox();
+          let rx = bbox.x + bbox.width / 2;
+          let ry = bbox.y + bbox.height / 2;
+          return 'rotate(180 ' + rx + ' ' + ry + ')';
+        }
+        else {
+          return 'rotate(0)';
+        }
+      });
     });
   }
 
