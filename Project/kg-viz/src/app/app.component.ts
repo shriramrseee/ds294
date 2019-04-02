@@ -12,6 +12,7 @@ import {isNullOrUndefined} from "util";
 export class AppComponent implements AfterContentInit, OnInit {
   title = 'kg-viz';
   data = [];
+  rawData = [];
   k = 10;
   width = 1400;
   height = 1400;
@@ -21,7 +22,9 @@ export class AppComponent implements AfterContentInit, OnInit {
   zoom = 400;
   simulation = null;
   links = null;
+  rawLinks = null;
   nodes = null;
+  rawNodes = null;
   link = null;
   linktext = null;
   node = null;
@@ -44,26 +47,34 @@ export class AppComponent implements AfterContentInit, OnInit {
     })
   }
 
-  searchVertex() {
+  searchVertex(v: string) {
+    if (!isNullOrUndefined(v)) {
+      this.vertex = v;
+    }
     this.isLoading = true;
+    this.propVertex = '';
+    this.prop = [];
     this.basicService.getVertex((this.vertex)).subscribe(res => {
-      this.data = [];
-      this.nodes = [];
-      this.links = [];
+      this.rawData = [];
+      this.rawNodes = [];
+      this.rawLinks = [];
       let temp = new Map();
       for (let i of <Array<any>> res) {
-        this.data.push(new yago(i));
+        this.rawData.push(new yago(i));
       }
-      for (let i of this.data) {
+      for (let i of this.rawData) {
         if (isNullOrUndefined(i.value)) {
           temp[i.subject] = 1;
           temp[i.object] = 1;
-          this.links.push(Object.create({"source": i.subject, "target": i.object, "label": i.predicate}));
+          this.rawLinks.push(Object.create({"source": i.subject, "target": i.object, "label": i.predicate}));
         }
       }
       for (let i in temp) {
-        this.nodes.push(Object.create({"id": i}));
+        this.rawNodes.push(Object.create({"id": i}));
       }
+      this.data = this.rawData;
+      this.nodes = this.rawNodes;
+      this.links = this.rawLinks;
       if(this.nodes.length > 0 && this.links.length > 0)
         this.drawGraph();
       else
@@ -83,15 +94,39 @@ export class AppComponent implements AfterContentInit, OnInit {
       for (let i of <Array<any>> res) {
         this.prop.push(new yago(i));
       }
+      this.links = this.rawLinks.filter(l => l.source.id === this.propVertex || l.target.id === this.propVertex);
+      let temp = new Map();
+      for (let i of this.links) {
+          temp[i.source.id] = 1;
+          temp[i.target.id] = 1;
+      }
+      this.nodes = this.rawNodes.filter(v => v.id in temp);
+      this.drawGraph();
       this.isLoading = false;
     });
+  }
+
+  reset(){
+    this.isLoading = true;
+    this.nodes = this.rawNodes;
+    this.links = this.rawLinks;
+    if(this.nodes.length > 0 && this.links.length > 0)
+      this.drawGraph();
+    else
+      d3.select("svg").selectAll("*").remove();
+    this.propVertex = '';
+    this.prop = [];
+    this.isLoading = false;
   }
 
   changeZoom(newVal) {
     console.log(newVal);
     this.width = this.zoom * 3.5;
     this.height = this.zoom * 3.5;
-    this.drawGraph();
+    if(this.nodes.length > 0 && this.links.length > 0)
+      this.drawGraph();
+    else
+      d3.select("svg").selectAll("*").remove();
   }
 
   drawGraph() {
@@ -143,7 +178,7 @@ export class AppComponent implements AfterContentInit, OnInit {
       .attr('dx', this.zoom/2)
       .attr('dy', 0)
       .attr('font-size', 10)
-      .attr('fill', '#d30e13');
+      .attr('fill', '#ff090c');
 
     edgelabels.append('textPath')
       .attr('xlink:href', function (d, i) {
