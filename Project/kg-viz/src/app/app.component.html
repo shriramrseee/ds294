@@ -9,9 +9,9 @@
     <div class="row">
       <label>Vertex: &nbsp; &nbsp;</label>
       <input type="text"  ngControl="vertex" [(ngModel)]="vertex"> &nbsp; &nbsp;
-      <button (click)="searchVertex(null)">Search</button> &nbsp; &nbsp;
-      <button (click)="getRelated()">Get Related</button> &nbsp; &nbsp;
-      <span *ngIf="isLoading"> <i class="fa fa-spinner fa-2x" aria-hidden="true"></i></span>
+      <button (click)="searchVertex(null); getRelated()">Search</button> &nbsp; &nbsp;
+      <button (click)="showRelated = !showRelated">Toggle Related</button> &nbsp; &nbsp;
+      <span *ngIf="isLoading || isRelLoading"> <i class="fa fa-spinner fa-2x" aria-hidden="true"></i></span>
     </div>
     <br>
     <div class="row">
@@ -22,12 +22,12 @@
   </div>
 <br>
 <br>
-<div class="row">
+<div class="row" [hidden]="showRelated">
   <div class="col-lg-8" style="background-color: #ffffff; height: 700px; overflow: scroll">
     <svg [attr.width]="width" [attr.height]="height" ></svg>
   </div>
   <div class="col-lg-4" style="text-align: center">
-    <button style="position: absolute" (click)="searchVertex(propVertex)">{{propVertex}}</button>
+    <button style="position: absolute" (click)="searchVertex(propVertex); getRelated()">{{propVertex}}</button>
     <br><br>
     <table style="width:100%">
       <tr>
@@ -45,6 +45,8 @@
     <button style="position: absolute" (click)="reset()">Reset</button>
   </div>
 </div>
-<br>
-<br>
-<svg [attr.width]="width" [attr.height]="height" id="relsvg"></svg>
+<div class="row" [hidden]="!showRelated">
+  <div class="col-lg-8" style="background-color: #ffffff; height: 700px; overflow: scroll">
+    <svg [attr.width]="width" [attr.height]="height" id="relsvg"></svg>
+  </div>
+</div>

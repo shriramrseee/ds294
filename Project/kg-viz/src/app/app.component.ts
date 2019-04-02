@@ -33,6 +33,8 @@ export class AppComponent implements AfterContentInit, OnInit {
   svg = null;
   relsvg = null;
   isLoading = false;
+  isRelLoading = false;
+  showRelated = false;
 
   constructor(public basicService: BasicService) {
   }
@@ -122,7 +124,7 @@ export class AppComponent implements AfterContentInit, OnInit {
   }
 
   getRelated() {
-    this.isLoading = true;
+    this.isRelLoading = true;
     this.relData = [];
     this.basicService.getRelated((this.vertex)).subscribe(res => {
       for (let i of <Array<any>> res) {
@@ -130,7 +132,7 @@ export class AppComponent implements AfterContentInit, OnInit {
       }
       console.log(this.relData);
       this.drawRelatedGraph();
-      this.isLoading = false;
+      this.isRelLoading = false;
     });
   }
 
@@ -142,6 +144,7 @@ export class AppComponent implements AfterContentInit, OnInit {
       this.drawGraph();
     else
       d3.select("svg").selectAll("*").remove();
+    this.drawRelatedGraph();
   }
 
   drawGraph() {
@@ -286,9 +289,9 @@ export class AppComponent implements AfterContentInit, OnInit {
 
   drawRelatedGraph() {
 
-    this.relsvg = d3.select("#relsvg")
-      .style("width", "100%")
-      .style("height", "auto")
+    this.relsvg = d3.select("#relsvg");
+    this.relsvg.selectAll("*").remove();
+    this.relsvg
       .attr("font-size", 10)
       .attr("font-family", "sans-serif")
       .attr("text-anchor", "middle");
