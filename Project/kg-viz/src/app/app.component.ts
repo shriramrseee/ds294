@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import {BasicService} from "../services/basic.service";
 import {yago} from "../models/yago.model";
 import {isNullOrUndefined} from "util";
+import { v4 as uuid } from 'uuid';
 
 @Component({
   selector: 'app-root',
@@ -13,6 +14,7 @@ export class AppComponent implements AfterContentInit, OnInit {
   title = 'kg-viz';
   data = [];
   rawData = [];
+  relData = [];
   k = 10;
   width = 1400;
   height = 1400;
@@ -29,6 +31,7 @@ export class AppComponent implements AfterContentInit, OnInit {
   linktext = null;
   node = null;
   svg = null;
+  relsvg = null;
   isLoading = false;
 
   constructor(public basicService: BasicService) {
@@ -75,7 +78,7 @@ export class AppComponent implements AfterContentInit, OnInit {
       this.data = this.rawData;
       this.nodes = this.rawNodes;
       this.links = this.rawLinks;
-      if(this.nodes.length > 0 && this.links.length > 0)
+      if (this.nodes.length > 0 && this.links.length > 0)
         this.drawGraph();
       else
         d3.select("svg").selectAll("*").remove();
@@ -86,8 +89,7 @@ export class AppComponent implements AfterContentInit, OnInit {
     })
   }
 
-  getProp()
-  {
+  getProp() {
     this.isLoading = true;
     this.prop = [];
     this.basicService.getProp((this.propVertex)).subscribe(res => {
@@ -97,8 +99,8 @@ export class AppComponent implements AfterContentInit, OnInit {
       this.links = this.rawLinks.filter(l => l.source.id === this.propVertex || l.target.id === this.propVertex);
       let temp = new Map();
       for (let i of this.links) {
-          temp[i.source.id] = 1;
-          temp[i.target.id] = 1;
+        temp[i.source.id] = 1;
+        temp[i.target.id] = 1;
       }
       this.nodes = this.rawNodes.filter(v => v.id in temp);
       this.drawGraph();
@@ -106,11 +108,11 @@ export class AppComponent implements AfterContentInit, OnInit {
     });
   }
 
-  reset(){
+  reset() {
     this.isLoading = true;
     this.nodes = this.rawNodes;
     this.links = this.rawLinks;
-    if(this.nodes.length > 0 && this.links.length > 0)
+    if (this.nodes.length > 0 && this.links.length > 0)
       this.drawGraph();
     else
       d3.select("svg").selectAll("*").remove();
@@ -119,11 +121,24 @@ export class AppComponent implements AfterContentInit, OnInit {
     this.isLoading = false;
   }
 
+  getRelated() {
+    this.isLoading = true;
+    this.relData = [];
+    this.basicService.getRelated((this.vertex)).subscribe(res => {
+      for (let i of <Array<any>> res) {
+        this.relData.push(Object.create({"source": i.subject, "value": i.value}));
+      }
+      console.log(this.relData);
+      this.drawRelatedGraph();
+      this.isLoading = false;
+    });
+  }
+
   changeZoom(newVal) {
     console.log(newVal);
     this.width = this.zoom * 3.5;
     this.height = this.zoom * 3.5;
-    if(this.nodes.length > 0 && this.links.length > 0)
+    if (this.nodes.length > 0 && this.links.length > 0)
       this.drawGraph();
     else
       d3.select("svg").selectAll("*").remove();
@@ -175,7 +190,7 @@ export class AppComponent implements AfterContentInit, OnInit {
       .attr('id', function (d, i) {
         return 'edgelabel' + i
       })
-      .attr('dx', this.zoom/2)
+      .attr('dx', this.zoom / 2)
       .attr('dy', 0)
       .attr('font-size', 10)
       .attr('fill', '#ff090c');
@@ -267,6 +282,50 @@ export class AppComponent implements AfterContentInit, OnInit {
         }
       });
     });
+  }
+
+  drawRelatedGraph() {
+
+    this.relsvg = d3.select("#relsvg")
+      .style("width", "100%")
+      .style("height", "auto")
+      .attr("font-size", 10)
+      .attr("font-family", "sans-serif")
+      .attr("text-anchor", "middle");
+
+    const root = d3.pack()
+      .size([this.width - 2, this.height - 2])
+      .padding(3)
+      (d3.hierarchy({children: this.relData})
+        .sum(d => d.value));
+
+    const leaf = this.relsvg.selectAll("g")
+      .data(root.leaves())
+      .join("g")
+      .attr("transform", d => `translate(${d.x + 1},${d.y + 1})`);
+
+    leaf.append("circle")
+      .attr("id", d => (d.leafUid = 1234))
+      .attr("r", d => d.r)
+      .attr("fill-opacity", 0.7)
+      .attr("fill", '#ffe44a');
+
+    leaf.append("clipPath")
+      .attr("id", d => (d.clipUid = 1234))
+      .append("use")
+      .attr("xlink:href", d => d.leafUid.href);
+
+    leaf.append("text")
+      .attr("clip-path", d => d.clipUid)
+      .selectAll("tspan")
+      .data(d => d.data.source.split(/(?=[A-Z][^A-Z])/g))
+      .join("tspan")
+      .attr("x", 0)
+      .attr("y", (d, i, nodes) => `${i - nodes.length / 2 + 0.8}em`)
+      .text(d => d);
+
+    leaf.append("title")
+      .text(d => d.data.source);
   }
 
 }

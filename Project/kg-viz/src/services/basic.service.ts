@@ -24,4 +24,8 @@ export class BasicService {
     return this.http.get(this.url + "rpc/getprop?vertex="+name)
   }
 
+  getRelated(name: string) {
+    return this.http.get(this.url + "rpc/getrelated?vertex="+name)
+  }
+
 }
