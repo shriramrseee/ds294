@@ -28,4 +28,8 @@ export class BasicService {
     return this.http.get(this.url + "rpc/getrelated?vertex="+name)
   }
 
+  getDoc(document: string) {
+    return this.http.get(this.url + "rpc/getdocnet?document="+document)
+  }
+
 }

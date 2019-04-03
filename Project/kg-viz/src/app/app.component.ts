@@ -15,26 +15,35 @@ export class AppComponent implements AfterContentInit, OnInit {
   data = [];
   rawData = [];
   relData = [];
+  docData = [];
   k = 10;
   width = 1400;
   height = 1400;
   vertex = '';
   propVertex = '';
+  document = '';
   prop = [];
   zoom = 400;
   simulation = null;
-  links = null;
+  docsimulation = null;
+  links = [];
   rawLinks = null;
-  nodes = null;
+  docLinks = null;
+  nodes = [];
   rawNodes = null;
+  docNodes = [];
   link = null;
+  doclinks = [];
   linktext = null;
   node = null;
+  docnodes = [];
   svg = null;
   relsvg = null;
+  docsvg = null;
   isLoading = false;
   isRelLoading = false;
   showRelated = false;
+  showDoc = false;
 
   constructor(public basicService: BasicService) {
   }
@@ -144,6 +153,10 @@ export class AppComponent implements AfterContentInit, OnInit {
       this.drawGraph();
     else
       d3.select("svg").selectAll("*").remove();
+    if (this.docnodes.length > 0 && this.doclinks.length > 0)
+      this.drawDocGraph();
+    else
+      d3.select("#docsvg").selectAll("*").remove();
     this.drawRelatedGraph();
   }
 
@@ -329,6 +342,174 @@ export class AppComponent implements AfterContentInit, OnInit {
 
     leaf.append("title")
       .text(d => d.data.source);
+  }
+
+  getDoc() {
+    this.isLoading = true;
+    this.basicService.getDoc((this.document)).subscribe(res => {
+      this.docData = [];
+      this.docNodes = [];
+      this.docLinks = [];
+      let temp = new Map();
+      for (let i of <Array<any>> res) {
+        this.docData.push(new yago(i));
+      }
+      for (let i of this.docData) {
+        if (isNullOrUndefined(i.value)) {
+          temp[i.subject] = 1;
+          temp[i.object] = 1;
+          this.docLinks.push(Object.create({"source": i.subject, "target": i.object, "label": i.predicate}));
+        }
+      }
+      for (let i in temp) {
+        this.docNodes.push(Object.create({"id": i}));
+      }
+      this.docnodes = this.docNodes;
+      this.doclinks = this.docLinks;
+      if (this.docnodes.length > 0 && this.doclinks.length > 0)
+        this.drawDocGraph();
+      else
+        d3.select("#docsvg").selectAll("*").remove();
+      this.isLoading = false;
+      console.log(this.docData);
+      console.log(this.docnodes);
+      console.log(this.doclinks);
+    })
+  }
+
+  drawDocGraph() {
+    this.docsvg = d3.select("#docsvg");
+    this.docsvg.selectAll("*").remove();
+    let force = this.docsimulation = d3.forceSimulation(this.docnodes)
+      .force("link", d3.forceLink(this.doclinks).id(d => d.id).distance(this.zoom*0.5).strength(1))
+      .force("charge", d3.forceManyBody().strength(-1000))
+      .force("center", d3.forceCenter(this.width / 2, this.height / 2));
+
+    let link = this.docsvg.selectAll("line")
+      .data(this.doclinks)
+      .enter()
+      .append("line")
+      .attr("id", function (d, i) {
+        return 'edge' + i
+      })
+      .attr('marker-end', 'url(#arrowhead)')
+      .style("stroke", "#ccc")
+      .style("pointer-events", "none");
+
+    let edgepaths = this.docsvg.selectAll(".edgepath")
+      .data(this.doclinks)
+      .enter()
+      .append('path')
+      .attr('d', function (d) {
+        return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y
+      })
+      .attr('class', 'edgepath')
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .attr("stroke-width", 2)
+      .attr('fill-opacity', 0)
+      .attr('fill', 'blue')
+      .attr('id', function (d, i) {
+        return 'edgepath' + i
+      })
+      .style("pointer-events", "none");
+
+    let edgelabels = this.docsvg.selectAll(".edgelabel")
+      .data(this.doclinks)
+      .enter()
+      .append('text')
+      .style("pointer-events", "none")
+      .attr('class', 'edgelabel')
+      .attr('id', function (d, i) {
+        return 'edgelabel' + i
+      })
+      .attr('dx', this.zoom / 2)
+      .attr('dy', 0)
+      .attr('font-size', 10)
+      .attr('fill', '#ff090c');
+
+    edgelabels.append('textPath')
+      .attr('xlink:href', function (d, i) {
+        return '#edgepath' + i
+      })
+      .style("pointer-events", "none")
+      .text(function (d, i) {
+        return d.label
+      });
+
+
+    let node = this.docsvg.append("g")
+      .attr("class", "nodes")
+      .selectAll("g")
+      .data(this.docnodes)
+      .enter().append("g");
+    node.append("circle")
+      .attr("r", 5)
+      .attr("fill", "#000");
+    let nodelabel = node.append("text")
+      .text(function (d) {
+        return d.id;
+      })
+      .attr('font-size', 10)
+      .attr('x', 6)
+      .attr('y', 10);
+    node.append("title")
+      .text(function (d) {
+        return d.id;
+      });
+
+    this.docsvg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '-0 -5 10 10')
+      .attr('refX', 25)
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 10)
+      .attr('markerHeight', 10)
+      .attr('xoverflow', 'visible')
+      .append('svg:path')
+      .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+      .attr('fill', '#0f0f0f')
+      .attr('stroke', '#090909');
+
+
+    force.on("tick", function () {
+
+      link.attr({
+        "x1": function (d) {
+          return d.source.x;
+        },
+        "y1": function (d) {
+          return d.source.y;
+        },
+        "x2": function (d) {
+          return d.target.x;
+        },
+        "y2": function (d) {
+          return d.target.y;
+        }
+      });
+
+      node.attr("transform", function (d) {
+        return "translate(" + d.x + "," + d.y + ")";
+      });
+
+      edgepaths.attr('d', function (d) {
+        return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y;
+      });
+
+      edgelabels.attr('transform', function (d, i) {
+        if (d.target.x < d.source.x) {
+          let bbox = this.getBBox();
+          let rx = bbox.x + bbox.width / 2;
+          let ry = bbox.y + bbox.height / 2;
+          return 'rotate(180 ' + rx + ' ' + ry + ')';
+        }
+        else {
+          return 'rotate(0)';
+        }
+      });
+    });
   }
 
 }
