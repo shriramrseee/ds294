@@ -360,6 +360,9 @@ export class AppComponent implements AfterContentInit, OnInit {
         this.docData.push(new yago(i));
       }
       for (let i of this.docData) {
+        if(!isNullOrUndefined(i.subject)) {
+          temp[i.subject] = 1;
+        }
         if (isNullOrUndefined(i.value)) {
           temp[i.subject] = 1;
           temp[i.object] = 1;
@@ -386,7 +389,7 @@ export class AppComponent implements AfterContentInit, OnInit {
     this.docsvg = d3.select("#docsvg");
     this.docsvg.selectAll("*").remove();
     let force = this.docsimulation = d3.forceSimulation(this.docnodes)
-      .force("link", d3.forceLink(this.doclinks).id(d => d.id).distance(this.zoom*0.5).strength(1))
+      .force("link", d3.forceLink(this.doclinks).id(d => d.id).distance(this.zoom).strength(1))
       .force("charge", d3.forceManyBody().strength(-1000))
       .force("center", d3.forceCenter(this.width / 2, this.height / 2));
 
