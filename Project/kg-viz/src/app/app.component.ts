@@ -11,7 +11,7 @@ import { v4 as uuid } from 'uuid';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements AfterContentInit, OnInit {
-  title = 'kg-viz';
+  title = 'KgViz - A project for DS 294';
   data = [];
   rawData = [];
   relData = [];
@@ -228,7 +228,12 @@ export class AppComponent implements AfterContentInit, OnInit {
       .enter().append("g");
     node.append("circle")
       .attr("r", 5)
-      .attr("fill", "#000");
+      .attr("fill", "#000")
+      .call(d3.drag()
+        .on("start", this.dragstarted)
+        .on("drag", this.dragged)
+        .on("end", this.dragended));
+
     let nodelabel = node.append("text")
       .text(function (d) {
         return d.id;
@@ -511,5 +516,23 @@ export class AppComponent implements AfterContentInit, OnInit {
       });
     });
   }
+
+  dragstarted(d) {
+    // if (!d3.event.active) this.simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+  }
+
+  dragended(d) {
+    // if (!d3.event.active) this.simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
 
 }
